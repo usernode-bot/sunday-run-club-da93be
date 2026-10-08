@@ -97,29 +97,35 @@ tables you've marked private), etc.
 
 ## About Sunday Run Club
 
-A run tracker
-
-_(add a sentence or two more of product context here so Claude Code has a
-shared understanding of what this app is for)_
+A weekly miles board for one running club. It opens on the current week
+(Sunday to Saturday): how many miles each runner has logged, a dashed line
+marking the group average so everyone can see who's keeping up, the week's
+run log, the last eight weeks' group totals, and a form for logging a run.
+Miles, because the club counts in miles; one shared time zone
+(America/New_York) because a week should turn over for everyone at once.
 
 ## Design
 
-This app's look. The first real version fills in the blanks; every later
-change follows it, and updates it when a request changes the look on purpose.
+This app's look. Every later change follows it, and updates it when a
+request changes the look on purpose.
 
-- **Palette:** _(name the accent, any second colour and the neutrals, e.g.
-  "accent: tomato red; second: basil green; neutrals: warm greys")_
-- **Signature element:** _(the one thing on screen drawn from this app's
-  subject, which no other app would have)_
-- **Type scale:** `text-title`, `text-heading`, `text-body`, `text-small`
-  _(change their sizes in `tailwind.config.js` if you must, not their number)_
-- **One fixed look:** _(only for an app drawn as its own scene, such as a
-  game: which look, and why. Otherwise delete this line.)_
+- **Palette:** accent: race-bib cobalt blue (`--accent`, cool in the light
+  look, a lighter cobalt in the dark one); neutrals: cool asphalt greys
+  (`ground`/`raised`/`line`), near-black text. One accent only, for the
+  primary action and for lanes at or above the group average.
+- **Signature element:** the lane bar — each runner's week drawn as a lane
+  in a track, with the group average crossing every lane as a dashed line
+  (`.lane-track` with `.lane-fill` / `.lane-fill-below` and a positioned
+  `.lane-avg`). Anywhere miles are compared, they are drawn as lanes.
+- **Type scale:** `text-title`, `text-heading`, `text-body`, `text-small`,
+  system sans (`fontFamily.sans` in `tailwind.config.js`), with
+  `tabular-nums` wherever miles line up in a column.
 
 The kit is in `styles/tailwind-input.css`: colour tokens with a light and
 a dark value (named in `tailwind.config.js`), and a few components
 (`btn-primary`, `btn-secondary`, `field`, `list` and `list-row`,
-`card`, `section-label`, `skeleton`, `state-empty`, `state-error`).
+`card`, `section-label`, `skeleton`, `state-empty`, `state-error`,
+`lane-track`, `lane-fill`, `lane-fill-below`, `lane-avg`).
 Re-theme by changing the token values there, keeping every text pair at
 4.5:1 or more in both looks.
 
@@ -139,6 +145,20 @@ Re-theme by changing the token values there, keeping every text pair at
 
 ## App-specific conventions
 
-_(optional — e.g. "all currency values stored as integer cents, not
-floats"; "the `posts` table is append-only"; "avoid adding new
-dependencies"; etc.)_
+- The `runs` table is append-only: no UPDATE or DELETE routes, and no
+  editing in the UI. A wrong entry is corrected by logging another run.
+- Miles are `numeric(5,1)`, stored per run from 0.1 to 100; the API returns
+  them as numbers rounded to 1 decimal.
+- Weeks run Sunday to Saturday in America/New_York. Never use `new Date()`,
+  SQL `NOW()` or the server's local zone to decide the week: read
+  `req.now` / `usernode.now()` and go through `todayInZone` /
+  `weekStartOf` in server.js. Dates travel as `YYYY-MM-DD` strings
+  (`run_date::text`) and are formatted with `timeZone: 'UTC'` so nothing
+  shifts by a day.
+- Runs are logged only for today or a day in the last 8 weeks, never a
+  future date.
+- Staging demo data exists only behind `?demo=1` (gated on `IS_STAGING`),
+  merged in-memory in `GET /api/summary`; nothing is ever written to the
+  database for it.
+- The runner list comes from logged runs (grouped by `user_id`, showing the
+  latest username), not from the project's member list.

@@ -29,30 +29,30 @@
  */
 @layer base {
   :root {
-    --ground: 250 250 249;    /* the page */
+    --ground: 247 248 250;    /* the page: cool asphalt grey */
     --surface: 255 255 255;   /* lists, cards, fields */
-    --raised: 245 245 244;    /* hovers, badges */
-    --fg: 28 25 23;           /* text */
-    --muted: 87 83 78;        /* secondary text */
-    --line: 231 229 228;      /* borders, dividers, skeletons */
-    --accent: 15 118 110;     /* the one accent */
+    --raised: 240 242 245;    /* hovers, badges, lane tracks */
+    --fg: 17 24 39;           /* text */
+    --muted: 75 85 99;        /* secondary text */
+    --line: 226 229 234;      /* borders, dividers, skeletons */
+    --accent: 29 78 216;      /* the one accent: the race-bib cobalt */
     --on-accent: 255 255 255; /* text on the accent */
     --danger: 185 28 28;
     --on-danger: 255 255 255;
-    --focus: 13 148 136;      /* the keyboard focus ring */
+    --focus: 37 99 235;       /* the keyboard focus ring */
   }
   .dark {
-    --ground: 12 10 9;
-    --surface: 28 25 23;
-    --raised: 41 37 36;
-    --fg: 245 245 244;
-    --muted: 168 162 158;
-    --line: 68 64 60;
-    --accent: 45 212 191;
-    --on-accent: 4 47 46;
+    --ground: 13 15 20;
+    --surface: 24 27 34;
+    --raised: 36 40 49;
+    --fg: 241 243 246;
+    --muted: 160 167 180;
+    --line: 55 61 72;
+    --accent: 147 178 255;
+    --on-accent: 10 22 56;
     --danger: 248 113 113;
     --on-danger: 69 10 10;
-    --focus: 94 234 212;
+    --focus: 165 192 255;
   }
   /* el.hidden = true hides an element even when a class gives it a display
      (flex, the components below). */
@@ -124,5 +124,23 @@
   .state-empty,
   .state-error {
     @apply flex flex-col items-center gap-2 px-4 py-8 text-center;
+  }
+
+  /* The lane bar, this app's signature element: one runner's week drawn as a
+     lane, with the group average crossing every lane as a dashed line
+     (.lane-avg, positioned with a % left on the same scale as the fills).
+     At or past the line a lane runs in the accent colour (.lane-fill);
+     below it, .lane-fill-below. */
+  .lane-track {
+    @apply relative h-2.5 rounded-full bg-raised;
+  }
+  .lane-fill {
+    @apply absolute inset-y-0 left-0 rounded-full bg-accent;
+  }
+  .lane-fill-below {
+    @apply absolute inset-y-0 left-0 rounded-full bg-muted/45;
+  }
+  .lane-avg {
+    @apply absolute -bottom-1 -top-1 border-l-2 border-dashed border-fg;
   }
 }

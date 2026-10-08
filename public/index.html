@@ -108,28 +108,352 @@
   </script>
 </head>
 <body class="min-h-screen bg-ground text-fg">
-  <!-- Built from the design kit in styles/tailwind-input.css: colour tokens
-       that are right in both looks, and components for buttons, fields,
-       lists, cards and data states. The real app keeps the kit; CLAUDE.md's
-       "## Design" says how. -->
-  <!-- (Named in prose on purpose: Tailwind compiles any class-name word in
-       these files, comments included, and the starter should ship only the
-       components its screen uses.) -->
-  <main class="mx-auto flex max-w-md flex-col gap-8 px-4 py-10">
+  <main class="mx-auto flex max-w-md flex-col gap-7 px-4 py-8">
 
-    <!-- usernode-starter-notice@1 — starter-template messaging. When building
-         the user's real app, replace this whole screen and delete this block,
-         both sentinel comments included. -->
-    <section class="card flex flex-col items-start gap-3">
-      <div class="flex h-20 w-20 items-center justify-center rounded-2xl border border-line bg-ground text-title">👟</div>
-      <span class="rounded-full bg-raised px-3 py-1 text-small font-medium text-muted">Starter template</span>
-      <h1 class="text-title">Sunday Run Club</h1>
-      <p class="text-body text-muted">Welcome to your new app! Everything on this screen is placeholder content that came with it.</p>
-      <p class="text-body text-muted">To change this app, ask Homeroom bot: tap the <strong class="font-semibold text-fg">Homeroom icon</strong>, then <strong class="font-semibold text-fg">Suggest an improvement</strong>. Describe what you'd like in plain English, and it will be turned into your real app.</p>
+    <!-- Shown only when the summary answers with demo: true (?demo=1 in staging). -->
+    <p id="demo-banner" hidden class="rounded-lg border border-line bg-raised px-3 py-2 text-small text-muted">Staging demo: made-up runners and runs, so you can see the board in use.</p>
+
+    <header class="flex items-end justify-between gap-3">
+      <div>
+        <h1 class="text-title">This week</h1>
+        <p id="week-sub" class="mt-0.5 text-small text-muted"></p>
+      </div>
+      <!-- Secondary: the one jump to the form. Hidden for guests, who have no form. -->
+      <a id="log-link" href="#log-form" class="btn-secondary shrink-0">Log a run</a>
+    </header>
+
+    <section>
+      <h2 class="section-label">Who's keeping up</h2>
+      <div id="board">
+        <div class="list" aria-hidden="true">
+          <div class="flex flex-col gap-1.5 px-4 py-3">
+            <div class="flex justify-between"><div class="skeleton h-4 w-24"></div><div class="skeleton h-4 w-14"></div></div>
+            <div class="skeleton h-2.5 w-full rounded-full"></div>
+          </div>
+          <div class="flex flex-col gap-1.5 px-4 py-3">
+            <div class="flex justify-between"><div class="skeleton h-4 w-20"></div><div class="skeleton h-4 w-14"></div></div>
+            <div class="skeleton h-2.5 w-full rounded-full"></div>
+          </div>
+          <div class="flex flex-col gap-1.5 px-4 py-3">
+            <div class="flex justify-between"><div class="skeleton h-4 w-28"></div><div class="skeleton h-4 w-14"></div></div>
+            <div class="skeleton h-2.5 w-full rounded-full"></div>
+          </div>
+        </div>
+      </div>
     </section>
-    <!-- /usernode-starter-notice@1 -->
 
-    <p class="text-center text-small text-muted">Built on Homeroom. This template screen disappears once you build your real app.</p>
+    <section id="runs-section">
+      <h2 class="section-label">Runs this week</h2>
+      <div id="runs">
+        <div class="list" aria-hidden="true">
+          <div class="px-4 py-3"><div class="skeleton h-4 w-full"></div></div>
+          <div class="px-4 py-3"><div class="skeleton h-4 w-3/4"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="log-section">
+      <h2 id="log-label" class="section-label">Log a run</h2>
+      <!-- Shown for guests in place of the form; the platform answers writes
+           with 401 account_required. -->
+      <p id="guest-note" hidden class="text-body text-muted">Make a Homeroom account to log your runs.</p>
+      <form id="log-form" class="card flex flex-col gap-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="run-date" class="mb-1 block text-small font-medium text-muted">Date of run</label>
+            <input type="date" id="run-date" name="runDate" class="field" required>
+          </div>
+          <div>
+            <label for="run-miles" class="mb-1 block text-small font-medium text-muted">Miles</label>
+            <input type="number" id="run-miles" name="miles" class="field" inputmode="decimal" step="0.1" min="0.1" max="100" placeholder="e.g. 5.0" required>
+          </div>
+        </div>
+        <div>
+          <label for="run-note" class="mb-1 block text-small font-medium text-muted">Note (optional)</label>
+          <input type="text" id="run-note" name="note" class="field" maxlength="140" placeholder="e.g. River loop with hills">
+        </div>
+        <p id="form-msg" aria-live="polite" hidden class="text-small"></p>
+        <button type="submit" id="log-btn" class="btn-primary">Log run</button>
+      </form>
+    </section>
+
+    <section id="weeks-section">
+      <h2 class="section-label">Recent weeks</h2>
+      <div id="weeks">
+        <div class="list" aria-hidden="true">
+          <div class="flex items-center gap-3 px-4 py-3"><div class="skeleton h-4 w-16"></div><div class="skeleton h-2.5 w-full rounded-full"></div><div class="skeleton h-4 w-14"></div></div>
+          <div class="flex items-center gap-3 px-4 py-3"><div class="skeleton h-4 w-16"></div><div class="skeleton h-2.5 w-full rounded-full"></div><div class="skeleton h-4 w-14"></div></div>
+          <div class="flex items-center gap-3 px-4 py-3"><div class="skeleton h-4 w-16"></div><div class="skeleton h-2.5 w-full rounded-full"></div><div class="skeleton h-4 w-14"></div></div>
+        </div>
+      </div>
+    </section>
   </main>
+
+  <script>
+    (function () {
+      'use strict';
+      var $ = function (sel) { return document.querySelector(sel); };
+
+      var params = new URLSearchParams(location.search);
+      var demoQuery = params.get('demo') === '1' ? '?demo=1' : '';
+      var token = params.get('token') || '';
+
+      // The API on this app's own origin, carrying the token the iframe was
+      // loaded with and, in a timed staging preview, the preview's moment.
+      function api(path, opts) {
+        opts = opts || {};
+        var headers = {};
+        if (opts.body) headers['Content-Type'] = 'application/json';
+        if (token) headers['x-usernode-token'] = token;
+        try {
+          if (window.usernode && window.usernode.previewNow && window.usernode.now) {
+            headers['x-usernode-now'] = window.usernode.now().toISOString();
+          }
+        } catch (e) {}
+        return fetch(path + demoQuery, {
+          method: opts.method || 'GET',
+          headers: headers,
+          body: opts.body ? JSON.stringify(opts.body) : undefined,
+        });
+      }
+
+      // Dates arrive as YYYY-MM-DD strings and are formatted in UTC so no
+      // zone shift ever moves them to the wrong day. Built from parts so the
+      // shape is exactly "Sun 4 Oct", whatever the locale's punctuation.
+      var dayFmt = new Intl.DateTimeFormat('en', { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'short' });
+      function showDate(d) {
+        var parts = {};
+        dayFmt.formatToParts(new Date(d + 'T00:00:00Z')).forEach(function (p) { parts[p.type] = p.value; });
+        return parts.weekday + ' ' + parts.day + ' ' + parts.month;
+      }
+      function showMi(n) { return n.toFixed(1) + ' mi'; }
+
+      function el(tag, className, text) {
+        var node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text != null) node.textContent = text;
+        return node;
+      }
+
+      var loaded = false;
+      var failed = false;
+      var summary = null;
+
+      function load() {
+        return api('/api/summary').then(function (res) {
+          if (!res.ok) throw new Error('summary ' + res.status);
+          return res.json();
+        }).then(function (data) {
+          summary = data;
+          failed = false;
+          loaded = true;
+          render();
+        }).catch(function () {
+          failed = true;
+          loaded = true;
+          render();
+        });
+      }
+
+      function render() {
+        renderBanner();
+        renderHeader();
+        renderBoard();
+        renderRuns();
+        renderWeeks();
+        renderForm();
+      }
+
+      function renderBanner() {
+        $('#demo-banner').hidden = !(summary && summary.demo);
+      }
+
+      function renderHeader() {
+        var sub = $('#week-sub');
+        if (failed) { sub.textContent = ''; return; }
+        if (!loaded) { sub.textContent = ''; return; }
+        var s = summary;
+        sub.textContent = showDate(s.weekStart) + ' to ' + showDate(s.weekEnd) + ' · ' +
+          showMi(s.totalMiles) + ' from ' + s.runnerCount +
+          (s.runnerCount === 1 ? ' runner' : ' runners');
+      }
+
+      // The lane bar's scale: the top miles on the board, the average never
+      // past the edge.
+      function scaleMax(s) {
+        var top = s.runners.length ? s.runners[0].miles : 0;
+        return Math.max(top, s.groupAverage) || 1;
+      }
+
+      function renderBoard() {
+        var board = $('#board');
+        board.textContent = '';
+        if (failed) {
+          var err = el('div', 'state-error');
+          err.appendChild(el('p', 'text-body font-semibold', "The weekly board didn't load."));
+          err.appendChild(el('p', 'text-small text-muted', 'You can still log a run below.'));
+          var retry = el('button', 'btn-secondary mt-2', 'Retry');
+          retry.type = 'button';
+          retry.addEventListener('click', function () {
+            retry.disabled = true;
+            load().then(function () { retry.disabled = false; });
+          });
+          err.appendChild(retry);
+          board.appendChild(err);
+          return;
+        }
+        var s = summary;
+        if (s.totalMiles === 0) {
+          var empty = el('div', 'state-empty');
+          empty.appendChild(el('p', 'text-body font-semibold', 'No runs yet this week'));
+          empty.appendChild(el('p', 'text-small text-muted', 'Log the first run of the week and it shows here.'));
+          board.appendChild(empty);
+          return;
+        }
+        var max = scaleMax(s);
+        var list = el('ul', 'list');
+        s.runners.forEach(function (r) {
+          var li = el('li', 'flex flex-col items-stretch gap-1.5 px-4 py-3');
+          li.setAttribute('data-runner-row', '');
+          var top = el('div', 'flex items-baseline justify-between gap-2');
+          var name = el('span', 'text-body' + (r.miles === 0 ? ' text-muted' : ''), r.isMe ? 'You' : r.username);
+          var right = el('span', 'text-body tabular-nums');
+          if (r.keepingUp) {
+            right.appendChild(el('span', 'text-small font-semibold text-accent', 'Keeping up'));
+            right.appendChild(document.createTextNode('  '));
+          }
+          right.appendChild(document.createTextNode(showMi(r.miles)));
+          top.appendChild(name);
+          top.appendChild(right);
+          var track = el('div', 'lane-track');
+          track.setAttribute('role', 'img');
+          track.setAttribute('aria-label',
+            showMi(r.miles) + ', group average ' + (s.groupAverage ? showMi(s.groupAverage) : 'none'));
+          if (r.miles > 0) {
+            var fill = el('div', r.keepingUp ? 'lane-fill' : 'lane-fill-below');
+            fill.style.width = Math.min(100, r.miles / max * 100) + '%';
+            track.appendChild(fill);
+          }
+          if (s.groupAverage > 0) {
+            var avg = el('div', 'lane-avg');
+            avg.style.left = Math.min(100, s.groupAverage / max * 100) + '%';
+            track.appendChild(avg);
+          }
+          li.appendChild(top);
+          li.appendChild(track);
+          list.appendChild(li);
+        });
+        board.appendChild(list);
+        var avgLine = el('p', 'mt-2 flex items-center gap-2 px-1 text-small text-muted');
+        var dash = el('span', 'w-3.5 border-t-2 border-dashed border-fg');
+        avgLine.appendChild(dash);
+        avgLine.appendChild(document.createTextNode('Group average ' + (s.groupAverage ? showMi(s.groupAverage) : '0.0 mi')));
+        board.appendChild(avgLine);
+      }
+
+      function renderRuns() {
+        var wrap = $('#runs');
+        var section = $('#runs-section');
+        wrap.textContent = '';
+        if (failed) { section.hidden = true; return; }
+        section.hidden = false;
+        var s = summary;
+        if (s.totalMiles === 0) { section.hidden = true; return; }
+        var list = el('ul', 'list');
+        s.runs.forEach(function (run) {
+          var li = el('li', 'list-row justify-between');
+          var left = el('div');
+          left.appendChild(el('div', 'text-body', run.isMe ? 'You' : run.username));
+          left.appendChild(el('div', 'text-small text-muted',
+            showDate(run.runDate) + (run.note ? ' · ' + run.note : '')));
+          var miles = el('span', 'text-body tabular-nums', showMi(run.miles));
+          li.appendChild(left);
+          li.appendChild(miles);
+          list.appendChild(li);
+        });
+        wrap.appendChild(list);
+      }
+
+      function renderWeeks() {
+        var wrap = $('#weeks');
+        var section = $('#weeks-section');
+        wrap.textContent = '';
+        if (failed) { section.hidden = true; return; }
+        section.hidden = false;
+        var s = summary;
+        var max = Math.max.apply(null, s.history.map(function (h) { return h.miles; }).concat([0]));
+        if (max === 0) { section.hidden = true; return; }
+        var list = el('ul', 'list');
+        s.history.forEach(function (h) {
+          var li = el('li', 'list-row justify-between gap-3');
+          li.appendChild(el('span', 'w-20 shrink-0 text-small text-muted', showDate(h.weekStart)));
+          var track = el('div', 'lane-track flex-1');
+          track.setAttribute('role', 'img');
+          track.setAttribute('aria-label', 'Week of ' + showDate(h.weekStart) + ': ' + showMi(h.miles));
+          if (h.miles > 0) {
+            var fill = el('div', 'lane-fill');
+            fill.style.width = (h.miles / max * 100) + '%';
+            track.appendChild(fill);
+          }
+          li.appendChild(track);
+          li.appendChild(el('span', 'w-16 shrink-0 text-right text-small tabular-nums', showMi(h.miles)));
+          list.appendChild(li);
+        });
+        wrap.appendChild(list);
+      }
+
+      function renderForm() {
+        var s = summary;
+        var isGuest = loaded && !failed && !s.me;
+        $('#log-form').hidden = isGuest;
+        $('#log-label').hidden = isGuest;
+        $('#log-link').hidden = isGuest;
+        $('#guest-note').hidden = !isGuest;
+        if (!isGuest && s) {
+          var date = $('#run-date');
+          if (!date.value) date.value = s.weekStart;
+          date.max = s.today;
+        }
+      }
+
+      var form = $('#log-form');
+      var msg = $('#form-msg');
+      var btn = $('#log-btn');
+      function setMsg(text, danger) {
+        msg.textContent = text;
+        msg.className = 'text-small' + (danger ? ' text-danger' : '');
+        msg.hidden = !text;
+      }
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        btn.disabled = true;
+        setMsg('');
+        api('/api/runs', {
+          method: 'POST',
+          body: {
+            runDate: $('#run-date').value,
+            miles: $('#run-miles').value,
+            note: $('#run-note').value,
+          },
+        }).then(function (res) {
+          if (res.status === 201) {
+            $('#run-miles').value = '';
+            $('#run-note').value = '';
+            setMsg('Run logged', false);
+            return load();
+          }
+          return res.json().catch(function () { return {}; }).then(function (data) {
+            setMsg(data.error === 'account_required'
+              ? 'Make a Homeroom account to log your runs.'
+              : (data.error || 'Could not log the run. Try again.'), true);
+          });
+        }).catch(function () {
+          setMsg('Could not log the run. Try again.', true);
+        }).then(function () { btn.disabled = false; });
+      });
+
+      load();
+    })();
+  </script>
 </body>
 </html>

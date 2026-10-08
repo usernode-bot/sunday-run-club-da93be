@@ -3,5 +3,21 @@
   "icon": {
     "emoji": "👟"
   },
-  "secrets": []
+  "secrets": [],
+  "tests": [
+    {
+      "id": "board-loads",
+      "path": "/",
+      "expectText": "This week",
+      "expectSelector": "#log-form"
+    },
+    {
+      "id": "demo-board",
+      "visual": true,
+      "impact": ["public/**", "server.js", "styles/**"],
+      "path": "/?demo=1",
+      "expectText": "Who's keeping up",
+      "expectSelector": "[data-runner-row]"
+    }
+  ]
 }

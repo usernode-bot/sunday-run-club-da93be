@@ -147,12 +147,276 @@ app.use((req, res, next) => {
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
+// ── The weekly miles board ─────────────────────────────────────────────────
+//
+// One table, append-only: a run is logged once and never edited or deleted.
+// Weeks run Sunday to Saturday in America/New_York — one shared zone, so the
+// whole club sees the week turn over at the same moment. The day is read
+// from req.now (see requestNow above), never new Date() or SQL's NOW().
+
+const ZONE = 'America/New_York';
+
+const DAY_MS = 86_400_000;
+const utcDay = (d) => Date.parse(d + 'T00:00:00Z');
+const fmtDay = (ms) => new Date(ms).toISOString().slice(0, 10);
+const addDays = (d, n) => fmtDay(utcDay(d) + n * DAY_MS);
+const r1 = (n) => Math.round(n * 10) / 10;
+
+// Today as YYYY-MM-DD in the group's zone. en-CA formats as ISO, so no
+// manual reassembly.
+function todayInZone(now) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: ZONE, year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(now);
+}
+
+// The Sunday on or before `d`.
+function weekStartOf(d) {
+  const dow = new Date(utcDay(d)).getUTCDay();
+  return addDays(d, -dow);
+}
+
+const MIGRATION = `
+  CREATE TABLE IF NOT EXISTS runs (
+    id bigserial PRIMARY KEY,
+    user_id text NOT NULL,
+    username text NOT NULL,
+    run_date date NOT NULL,
+    miles numeric(5,1) NOT NULL CHECK (miles > 0 AND miles <= 100),
+    note text,
+    created_at timestamptz NOT NULL DEFAULT now()
+  );
+  CREATE INDEX IF NOT EXISTS runs_run_date_idx ON runs (run_date);
+`;
+
+// Staging demo (?demo=1): in-memory rows merged into the summary, never
+// written to the database, no boot-time seed. Generated relative to
+// weekStart so they always land in the current and past weeks whenever the
+// preview is opened. Negative ids so they never collide with real ones.
+const DEMO_PAST = [
+  [['mara.demo', 9.2, 'Long run, easy pace'], ['jonas.demo', 6.4, 'River loop'], ['sam.demo', 7.8, 'River loop'], ['priya.demo', 4.2, null]],
+  [['mara.demo', 8.0, 'Track repeats'], ['theo.demo', 5.4, null], ['sam.demo', 8.4, 'Long run, easy pace'], ['lena.demo', 3.8, 'Hill repeats'], ['jonas.demo', 6.0, null]],
+  [['sam.demo', 7.2, 'River loop'], ['mara.demo', 10.1, 'Long run, easy pace'], ['priya.demo', 5.0, 'Hill repeats'], ['theo.demo', 4.6, null]],
+  [['jonas.demo', 7.4, 'River loop'], ['sam.demo', 6.6, null], ['mara.demo', 9.8, 'Track repeats'], ['lena.demo', 5.2, null]],
+  [['mara.demo', 11.0, 'Long run, easy pace'], ['theo.demo', 6.2, null], ['sam.demo', 5.9, 'River loop'], ['priya.demo', 4.8, null], ['jonas.demo', 6.8, 'Hill repeats']],
+  [['sam.demo', 8.8, 'River loop'], ['mara.demo', 7.6, null], ['theo.demo', 3.4, null]],
+  [['mara.demo', 9.4, 'Track repeats'], ['sam.demo', 7.0, 'Long run, easy pace'], ['jonas.demo', 5.6, null], ['priya.demo', 6.2, 'River loop'], ['lena.demo', 4.4, null], ['theo.demo', 4.0, null]],
+  [['sam.demo', 6.8, 'River loop'], ['mara.demo', 8.6, 'Long run, easy pace'], ['jonas.demo', 6.1, null]],
+];
+
+function demoRuns(req, weekStart) {
+  const rows = [];
+  let id = 0;
+  const add = (userId, username, dayOffset, miles, note) => {
+    const runDate = addDays(weekStart, dayOffset);
+    rows.push({
+      id: --id,
+      user_id: userId,
+      username,
+      run_date: runDate,
+      miles,
+      note,
+      created_at: new Date(utcDay(runDate) + 9 * 3_600_000), // 09:00 UTC that day
+    });
+  };
+  // This week: the Sunday club run plus a few midweek ones (sam.demo only
+  // ever appears in past weeks).
+  add('demo-mara', 'mara.demo', 0, 10.4, 'Long run, easy pace');
+  add('demo-jonas', 'jonas.demo', 0, 7.2, null);
+  add('demo-priya', 'priya.demo', 2, 6.5, 'River loop');
+  add('demo-theo', 'theo.demo', 3, 5.0, null);
+  add('demo-lena', 'lena.demo', 4, 4.5, 'Track repeats');
+  add('demo-jonas', 'jonas.demo', 5, 2.6, 'Shakeout jog');
+  add('demo-lena', 'lena.demo', 6, 3.0, null);
+  // Two runs for the viewer, so their row reads "You" on the demo board.
+  if (req.user) {
+    add(String(req.user.id), req.user.username || 'you', 0, 8.0, 'River loop');
+    add(String(req.user.id), req.user.username || 'you', -7, 6.0, 'Long run, easy pace');
+  }
+  DEMO_PAST.forEach((week, i) => {
+    week.forEach(([name, miles, note], j) => {
+      add('demo-' + name.replace('.demo', ''), name, -7 * (i + 1) + [0, 2, 4][j % 3], miles, note);
+    });
+  });
+  return rows;
+}
+
+function buildSummary(rows, me, demo, now) {
+  const today = todayInZone(now);
+  const weekStart = weekStartOf(today);
+  const weekEnd = addDays(weekStart, 6);
+  const historyStart = addDays(weekStart, -56);
+
+  const weekRuns = [];
+  const byUser = new Map();
+  const history = Array.from({ length: 8 }, (_, i) => ({
+    weekStart: addDays(weekStart, -7 * (i + 1)), miles: 0, runnerIds: new Set(),
+  }));
+  const historyIndex = new Map(history.map((h, i) => [h.weekStart, i]));
+
+  for (const row of rows) {
+    const d = typeof row.run_date === 'string' ? row.run_date.slice(0, 10) : null;
+    if (!d || d < historyStart || d > weekEnd) continue;
+    const userId = String(row.user_id);
+    const miles = r1(Number(row.miles));
+    const entry = {
+      id: Number(row.id),
+      userId,
+      username: row.username,
+      runDate: d,
+      miles,
+      note: row.note == null ? null : String(row.note),
+      createdAt: row.created_at instanceof Date ? row.created_at.getTime() : 0,
+    };
+    if (d >= weekStart) {
+      weekRuns.push(entry);
+      let u = byUser.get(userId);
+      if (!u) {
+        u = { userId, miles: 0, runs: 0, lastSeen: 0, latestName: row.username };
+        byUser.set(userId, u);
+      }
+      // Rows group by user_id; the display name is the latest one used.
+      if (entry.createdAt >= u.lastSeen) { u.lastSeen = entry.createdAt; u.latestName = row.username; }
+      u.miles = r1(u.miles + miles);
+      u.runs += 1;
+    }
+    const hi = historyIndex.get(d);
+    if (hi !== undefined) {
+      history[hi].miles = r1(history[hi].miles + miles);
+      history[hi].runnerIds.add(userId);
+    }
+  }
+
+  // Newest first: date, then when it was logged.
+  weekRuns.sort((a, b) =>
+    b.runDate.localeCompare(a.runDate) || b.createdAt - a.createdAt || b.id - a.id);
+
+  const totalMiles = r1(weekRuns.reduce((sum, e) => sum + e.miles, 0));
+  const runners = Array.from(byUser.values())
+    .map(u => ({ userId: u.userId, username: u.latestName, miles: u.miles, runs: u.runs }))
+    .sort((a, b) => b.miles - a.miles || a.username.localeCompare(b.username));
+  // The average counts only people who ran this week; "keeping up" is at or
+  // above it.
+  const runnerCount = runners.filter(r => r.miles > 0).length;
+  const groupAverage = runnerCount ? r1(totalMiles / runnerCount) : 0;
+  for (const r of runners) {
+    r.keepingUp = r.miles > 0 && r.miles >= groupAverage;
+    r.isMe = !!me && r.userId === me.userId;
+  }
+
+  return {
+    zone: ZONE,
+    today,
+    weekStart,
+    weekEnd,
+    me,
+    demo,
+    totalMiles,
+    runnerCount,
+    groupAverage,
+    runners,
+    runs: weekRuns.map(e => ({
+      id: e.id,
+      username: e.username,
+      runDate: e.runDate,
+      miles: e.miles,
+      note: e.note,
+      isMe: !!me && e.userId === me.userId,
+    })),
+    history: history.map(h => ({ weekStart: h.weekStart, miles: h.miles, runners: h.runnerIds.size })),
+  };
+}
+
 // The template ships no favicon file; index.html carries an inline SVG
 // icon instead. Answer 204 here so anything that still probes
 // /favicon.ico (older browsers, direct visits) doesn't fall through to
 // the auth-gated catch-all and surface a 401 in the console on every
 // fresh load.
 app.get('/favicon.ico', (_req, res) => res.status(204).end());
+
+// The board: this week's lanes, this week's runs and the last 8 weeks, in
+// one query. Guests may read it, so nothing here assumes req.user.
+app.get('/api/summary', async (req, res, next) => {
+  try {
+    const now = req.now;
+    const weekStart = weekStartOf(todayInZone(now));
+    const weekEnd = addDays(weekStart, 6);
+    const historyStart = addDays(weekStart, -56);
+    const { rows } = await pool.query(
+      `SELECT id, user_id, username, run_date::text AS run_date, miles, note, created_at
+         FROM runs
+        WHERE run_date >= $1::date AND run_date <= $2::date`,
+      [historyStart, weekEnd]);
+    const demo = IS_STAGING && req.query.demo === '1';
+    const all = demo ? rows.concat(demoRuns(req, weekStart)) : rows;
+    const me = req.user
+      ? { userId: String(req.user.id), username: req.user.username }
+      : null;
+    res.json(buildSummary(all, me, demo, now));
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Log a run. Signed-in users only (the middleware answers guests 401
+// account_required before this runs).
+app.post('/api/runs', async (req, res, next) => {
+  try {
+    const today = todayInZone(req.now);
+    const earliest = addDays(weekStartOf(today), -56);
+    const body = req.body || {};
+
+    const runDate = typeof body.runDate === 'string' ? body.runDate : '';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(runDate) || fmtDay(utcDay(runDate)) !== runDate) {
+      return res.status(400).json({ error: 'Pick a date for the run.' });
+    }
+    if (runDate > today) {
+      return res.status(400).json({ error: "A run can't be logged for a future date." });
+    }
+    if (runDate < earliest) {
+      return res.status(400).json({ error: 'Runs can be logged for the last 8 weeks.' });
+    }
+
+    const milesRaw = typeof body.miles === 'number' ? body.miles : Number(String(body.miles ?? '').trim());
+    if (!Number.isFinite(milesRaw) || milesRaw <= 0 || milesRaw > 100) {
+      return res.status(400).json({ error: 'Enter miles between 0.1 and 100.' });
+    }
+    const miles = r1(milesRaw);
+
+    let note = null;
+    if (typeof body.note === 'string') {
+      note = body.note.trim();
+      if (note.length > 140) {
+        return res.status(400).json({ error: 'Note can be at most 140 characters.' });
+      }
+      if (note === '') note = null;
+    }
+
+    const { rows } = await pool.query(
+      `INSERT INTO runs (user_id, username, run_date, miles, note)
+       VALUES ($1, $2, $3::date, $4, $5)
+       RETURNING id, user_id, username, run_date::text AS run_date, miles, note, created_at`,
+      [String(req.user.id), req.user.username || 'runner', runDate, miles, note]);
+    const row = rows[0];
+    res.status(201).json({
+      id: Number(row.id),
+      userId: String(row.user_id),
+      username: row.username,
+      runDate: row.run_date,
+      miles: r1(Number(row.miles)),
+      note: row.note,
+      createdAt: row.created_at,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// API errors answer as JSON, not the HTML error page Express defaults to.
+app.use((err, _req, res, _next) => {
+  console.error(err);
+  res.status(500).json({ error: 'Something went wrong. Try again.' });
+});
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -192,9 +456,28 @@ app.get('*', (req, res) => {
 });
 
 async function start() {
-  const server = app.listen(port, () => console.log(`Listening on :${port}`));
-  // Let Envoy retire idle upstream connections at 60s, with a 15s margin.
-  server.keepAliveTimeout = 75_000;
+  // The runs table exists before the first request can touch it.
+  await pool.query(MIGRATION);
+  return new Promise((resolve) => {
+    const server = app.listen(port, () => {
+      console.log(`Listening on :${port}`);
+      resolve(server);
+    });
+    // Let Envoy retire idle upstream connections at 60s, with a 15s margin.
+    server.keepAliveTimeout = 75_000;
+  });
 }
 
-start().catch(err => { console.error(err); process.exit(1); });
+start().then((server) => {
+  let closing = false;
+  const exit = () => pool.end().catch(() => {}).finally(() => process.exit(0));
+  const shutdown = (signal) => {
+    if (closing) return;
+    closing = true;
+    console.log(`${signal}: closing`);
+    server.close(exit);
+    setTimeout(exit, 3000);
+  };
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
+}).catch(err => { console.error(err); process.exit(1); });

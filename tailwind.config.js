@@ -63,6 +63,11 @@ module.exports = {
         heading: ['1.25rem', { lineHeight: '1.75rem', fontWeight: '600' }],
         title: ['1.75rem', { lineHeight: '2.25rem', fontWeight: '700' }],
       },
+      // System sans, the running-app vernacular: no display face, the type
+      // scale above carries the whole look.
+      fontFamily: {
+        sans: ['system-ui', '-apple-system', '"Segoe UI"', 'Roboto', 'sans-serif'],
+      },
     },
   },
   plugins: [],
