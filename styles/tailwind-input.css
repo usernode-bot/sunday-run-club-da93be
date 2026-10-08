@@ -106,6 +106,18 @@
     @apply rounded-xl border border-line bg-surface p-4;
   }
 
+  /* The week strip: one dot per recent Sunday, filled when you ran that
+     week. This app's signature element ("am I keeping up?" at a glance). */
+  .week-strip {
+    @apply flex items-center gap-1.5;
+  }
+  .week-strip .dot {
+    @apply h-4 w-4 rounded-full border-2 border-line bg-transparent;
+  }
+  .week-strip .dot.on {
+    @apply border-accent bg-accent;
+  }
+
   /* The label above a section: sentence case, never uppercase or tracked. */
   .section-label {
     @apply mb-2 px-1 text-small font-medium text-muted;
