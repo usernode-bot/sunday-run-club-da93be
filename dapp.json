@@ -3,5 +3,20 @@
   "icon": {
     "emoji": "👟"
   },
-  "secrets": []
+  "secrets": [],
+  "tests": [
+    {
+      "name": "Weekly screen renders",
+      "path": "/",
+      "expectText": "This week"
+    },
+    {
+      "name": "Weekly board and log form",
+      "path": "/",
+      "visual": true,
+      "id": "weekly.board",
+      "impact": ["public/index.html", "server.js", "dapp.json"],
+      "expectText": "This week"
+    }
+  ]
 }

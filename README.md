@@ -1,27 +1,41 @@
 # Sunday Run Club
 
-> **Starter template** — this repo was scaffolded by Homeroom Social
-> Vibecoding. Everything in it is placeholder example code until the
-> app's first real feature is built.
+A run tracker for our weekly Sunday run group. Everyone logs the miles they
+ran, and the board shows who is keeping up.
 
-The scaffold is a small working demo that proves the plumbing works:
+## What it does
 
-- **Sign-in** — the server verifies the platform-issued user token
-  (an RS256 JWT) on every request, so the app already knows who is
-  using it. No accounts to build.
-- **Database** — the app has its own private Postgres database, ready
-  to store things.
-- **Styling** — Tailwind CSS, precompiled by `npm run build` during
-  image creation with either Kubernetes/Paketo or standalone Docker, in a
-  light and a dark look that follow the viewer's Homeroom theme.
+- **Log a run** — miles, the day it happened (today or any past day) and an
+  optional note, logged under your Homeroom username. Runs are recorded once;
+  nothing can be edited or deleted.
+- **This week** — per-person totals for the current week, most miles first,
+  each row carrying a slim bar against the week's leader.
+- **This week's runs** — every individual run of the current week, newest
+  first, notes included.
+- **Recent weeks** — the last six weeks side by side: people as columns,
+  weeks as rows, a group total at the end.
 
-## Replacing the template
+Weeks run Sunday to Saturday. Signed-out visitors can read the whole board
+but not log; the form's spot carries a note saying a Homeroom account is
+needed.
 
-To change this app, ask Homeroom bot: open the app on Homeroom, tap the
-Homeroom icon in the header, then **Suggest an improvement**, and describe
-the app you want in plain English. The template will be replaced with your
-real app. You can also run
-Claude Code against this repo directly; start with `CLAUDE.md`, which
-carries the app-specific notes and points at the platform rules.
+## How it's built
 
-Once the real app exists, rewrite this README to describe it.
+Plain server-rendered single page (`public/index.html`) on an Express app
+(`server.js`) with Postgres (`pg`). One `runs` table, created by an
+idempotent boot migration; append-only in this version. The API is three
+routes behind the platform's JWT auth middleware: `GET /api/me`,
+`GET /api/week` and `POST /api/runs` (which returns the refreshed board).
+
+The stylesheet is Tailwind, precompiled from `styles/tailwind-input.css` and
+`tailwind.config.js` by `npm run build` on every image build — never edited
+in `public/`. The app follows the viewer's Homeroom theme (light and dark)
+through the platform bridge.
+
+## Running it
+
+`npm start` (or `node server.js`) — the container image builds the CSS and
+runs the same entrypoint. Needs `DATABASE_URL`, `USERNODE_JWT_PUBLIC_KEY`
+and `USERNODE_APP_ID`, all injected by the Homeroom platform. Staging
+previews seed a handful of obviously fake `staging-demo-*` runners so the
+board can be seen; production starts empty.

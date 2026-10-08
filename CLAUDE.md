@@ -97,24 +97,27 @@ tables you've marked private), etc.
 
 ## About Sunday Run Club
 
-A run tracker
-
-_(add a sentence or two more of product context here so Claude Code has a
-shared understanding of what this app is for)_
+A run tracker for our weekly Sunday run group. Everyone logs the miles they
+ran (a Sunday run, or any day they got out that week), and the board shows
+who is keeping up: per-person totals for the week with a bar against the
+week's leader, every run logged, and the last six weeks side by side. Runs
+are logged once, under your Homeroom username, and can't be edited or
+deleted. Signed-out visitors can read the whole board but not log.
 
 ## Design
 
 This app's look. The first real version fills in the blanks; every later
 change follows it, and updates it when a request changes the look on purpose.
 
-- **Palette:** _(name the accent, any second colour and the neutrals, e.g.
-  "accent: tomato red; second: basil green; neutrals: warm greys")_
-- **Signature element:** _(the one thing on screen drawn from this app's
-  subject, which no other app would have)_
+- **Palette:** the kit's own values kept as the app's palette — teal accent
+  (`--accent`), warm grey neutrals (`ground`, `surface`, `raised`, `fg`,
+  `muted`, `line`) — with no second colour. Values live in
+  `styles/tailwind-input.css`; re-theme there, not in markup.
+- **Signature element:** the This week board — one row per runner, each row
+  carrying a slim accent bar over a line track that compares that person's
+  miles with the week's leader.
 - **Type scale:** `text-title`, `text-heading`, `text-body`, `text-small`
-  _(change their sizes in `tailwind.config.js` if you must, not their number)_
-- **One fixed look:** _(only for an app drawn as its own scene, such as a
-  game: which look, and why. Otherwise delete this line.)_
+  as shipped, system fonts.
 
 The kit is in `styles/tailwind-input.css`: colour tokens with a light and
 a dark value (named in `tailwind.config.js`), and a few components
@@ -139,6 +142,9 @@ Re-theme by changing the token values there, keeping every text pair at
 
 ## App-specific conventions
 
-_(optional — e.g. "all currency values stored as integer cents, not
-floats"; "the `posts` table is append-only"; "avoid adding new
-dependencies"; etc.)_
+- The `runs` table is append-only: no UPDATE or DELETE route exists. A
+  future change that lets people fix mistakes must say so in its own request.
+- Weeks run Sunday to Saturday, counted in UTC calendar days; the server's
+  timezone is UTC and "now" always comes from `req.now` / `usernode.now()`,
+  never `new Date()` or SQL `NOW()`.
+- No new dependencies.
