@@ -3,5 +3,31 @@
   "icon": {
     "emoji": "👟"
   },
-  "secrets": []
+  "secrets": [],
+  "tests": [
+    {
+      "id": "first-version-home",
+      "visual": true,
+      "impact": ["public/**", "server.js", "styles/**"],
+      "name": "Home with demo data",
+      "path": "/?demo=1",
+      "expectSelector": "form",
+      "expectText": "Log your run"
+    },
+    {
+      "name": "Keeping up renders",
+      "path": "/?demo=1",
+      "expectText": "Keeping up"
+    },
+    {
+      "name": "Weekly totals render",
+      "path": "/?demo=1",
+      "expectText": "Weekly totals"
+    },
+    {
+      "name": "Empty state on fresh data",
+      "path": "/",
+      "expectText": "No runs yet"
+    }
+  ]
 }

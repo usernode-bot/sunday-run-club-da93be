@@ -97,24 +97,26 @@ tables you've marked private), etc.
 
 ## About Sunday Run Club
 
-A run tracker
-
-_(add a sentence or two more of product context here so Claude Code has a
-shared understanding of what this app is for)_
+A tracker for a club that runs together on Sundays. Members log the miles
+for each of their runs, see at a glance who is keeping their weekly streak
+up, and compare the group's totals week by week. One page, three sections
+top to bottom: **This week** (the log form and the week board), **Keeping
+up** (streaks per member), and **Weekly totals** (group miles, week by
+week).
 
 ## Design
 
-This app's look. The first real version fills in the blanks; every later
-change follows it, and updates it when a request changes the look on purpose.
+This app's look. The first real version set it; every later change follows
+it, and updates it when a request changes the look on purpose.
 
-- **Palette:** _(name the accent, any second colour and the neutrals, e.g.
-  "accent: tomato red; second: basil green; neutrals: warm greys")_
-- **Signature element:** _(the one thing on screen drawn from this app's
-  subject, which no other app would have)_
+- **Palette:** the kit's defaults as shipped: warm greys for the neutrals
+  and the single teal accent for the primary action and the filled dots.
+- **Signature element:** the week strip — one small dot per recent Sunday,
+  filled when you ran that week. It is the fastest "am I keeping up?"
+  glance there is, and new screens that show a person's own history should
+  reach for it rather than inventing a second motif.
 - **Type scale:** `text-title`, `text-heading`, `text-body`, `text-small`
-  _(change their sizes in `tailwind.config.js` if you must, not their number)_
-- **One fixed look:** _(only for an app drawn as its own scene, such as a
-  game: which look, and why. Otherwise delete this line.)_
+  (unchanged; don't grow the scale)
 
 The kit is in `styles/tailwind-input.css`: colour tokens with a light and
 a dark value (named in `tailwind.config.js`), and a few components
@@ -136,6 +138,31 @@ Re-theme by changing the token values there, keeping every text pair at
 - Seed obviously fake staging demo data so the populated screen can be seen
   ("Staging mock data" in the platform conventions).
 - No cards in cards, no uppercase eyebrows, no emoji as icons.
+
+## App-specific conventions
+
+- **Weeks are Monday to Sunday, UTC** (the server's zone). Every date
+  decision reads `req.now` server-side and `usernode.now()` client-side,
+  never `new Date()` or SQL's `NOW()`. A per-club timezone is a known
+  deferral; don't mix local-time reasoning in.
+- **Miles only**, stored as `numeric(6,2)` in `runs`. No km toggle.
+- **One run per member per day**: `runs` has `UNIQUE (user_id, run_date)`,
+  and logging again for a date replaces that day's miles (upsert). There
+  is no edit screen, only replace and delete-own-run.
+- **The date field never accepts a future date** (validated against
+  `req.now`); its default is the most recent Sunday (today, if today is
+  Sunday).
+- **The roster comes from the platform's `GET /members`** with the
+  viewer's own token, cached 60 s — never from whoever has opened the
+  app, and never a fixture. On 403 (admins, the check runner) the
+  boards render from the runs alone and the page does not fail.
+- **`runs` is a public table by design** (group leaderboard content,
+  nothing beyond a public username); no `staging:private` tables exist.
+- **The first-version demo** lives on `?demo=1` (staging only): fake
+  runners injected in memory, never stored; the viewer's own demo streak
+  is added to the demo response rather than written, so the plain route
+  keeps its production-shaped empty state whatever previews were opened.
+  Runs the viewer logs through the form are stored for real.
 
 ## App-specific conventions
 
