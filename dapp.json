@@ -1,6 +1,7 @@
 {
   "description": "A run tracker",
   "icon": {
+    "image": "brand/icon.png",
     "emoji": "👟"
   },
   "secrets": [],
