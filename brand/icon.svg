@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Sunday Run Club mark: running shoe in motion beneath a rising Sunday sun.
+       Homeroom brand pairing: Black #000000 on Cream #FFFEEA. Flat, no text. -->
+  <rect width="1024" height="1024" fill="#FFFEEA"/>
+  <!-- sun: half disc, flat side down -->
+  <path d="M342 500 A170 170 0 0 1 682 500 Z" fill="#000000"/>
+  <!-- rays -->
+  <g stroke="#000000" stroke-width="44" stroke-linecap="round">
+    <line x1="310" y1="426" x2="240" y2="401"/>
+    <line x1="389" y1="324" x2="346" y2="262"/>
+    <line x1="512" y1="285" x2="512" y2="210"/>
+    <line x1="635" y1="324" x2="678" y2="262"/>
+    <line x1="714" y1="426" x2="784" y2="401"/>
+  </g>
+  <!-- horizon -->
+  <line x1="200" y1="540" x2="824" y2="540" stroke="#000000" stroke-width="44" stroke-linecap="round"/>
+  <!-- speed lines behind the heel -->
+  <g stroke="#000000" stroke-width="44" stroke-linecap="round">
+    <line x1="170" y1="660" x2="240" y2="660"/>
+    <line x1="150" y1="720" x2="240" y2="720"/>
+  </g>
+  <!-- shoe upper, side view facing right -->
+  <path d="M300 725 L300 640 Q300 610 330 610 L430 610 L520 670 L700 662 Q816 652 824 725 Z" fill="#000000"/>
+  <!-- sole, separated from the upper by a cream gap -->
+  <rect x="300" y="745" width="520" height="55" rx="27" fill="#000000"/>
+  <!-- lace notches on the instep -->
+  <g stroke="#FFFEEA" stroke-width="18" stroke-linecap="round">
+    <line x1="458" y1="646" x2="488" y2="666"/>
+    <line x1="485" y1="680" x2="515" y2="700"/>
+  </g>
+</svg>
